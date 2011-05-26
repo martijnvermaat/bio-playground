@@ -4,7 +4,7 @@
 # versus forward mapped reads.
 #
 # Usage:
-#   ./read-directions reads.bam
+#   ./read-directions reads1.bam [reads2.bam] [reads3.bam] ...
 #
 # Requires the pysam Python module [1].
 #
@@ -13,6 +13,7 @@
 # 2011-05-18, Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
+from __future__ import division
 import sys
 import pysam
 
@@ -34,11 +35,37 @@ def count_directions(reads_file):
                 forward += 1
 
     reads.close()
+    return total, forward, reverse
 
-    c = float(reverse + forward) / 100
-    return reverse + forward, float(reverse + forward) / total * 100, \
-           forward, forward / c, \
-           reverse, reverse / c
+
+def print_counts(description, counts):
+    """
+    Print counts.
+    """
+    total, forward, reverse = counts
+    both = forward + reverse
+    print description
+    print 'Unpaired: %9d (%6.3f%%)' % (both, both / total * 100)
+    print 'Forward:  %9d (%6.3f%%)' % (forward, forward / both * 100)
+    print 'Reverse:  %9d (%6.3f%%)' % (reverse, reverse / both * 100)
+
+
+def main(files):
+    """
+    Print counts for each file and totals.
+    """
+    total = forward = reverse = 0
+
+    for file in files:
+        counts = count_directions(file)
+        print_counts(file, counts)
+        print
+        total += counts[0]
+        forward += counts[1]
+        reverse += counts[2]
+
+    print_counts('Totals for %d files' % len(files),
+                 (total, forward, reverse))
 
 
 if __name__ == '__main__':
@@ -47,8 +74,6 @@ if __name__ == '__main__':
 versus forward mapped reads.
 
 Usage:
-  {command} reads.bam""".format(command=sys.argv[0])
+  {command} reads1.bam [reads2.bam] [reads3.bam] ...""".format(command=sys.argv[0])
         sys.exit(1)
-    print sys.argv[1]
-    print 'Unpaired: %9d (%6.3f%%)\nForward:  %9d (%6.3f%%)\nReverse:  %9d (%6.3f%%)' \
-          % count_directions(sys.argv[1])
+    main(sys.argv[1:])
