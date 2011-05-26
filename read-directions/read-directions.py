@@ -6,6 +6,14 @@
 # Usage:
 #   ./read-directions reads1.bam [reads2.bam] [reads3.bam] ...
 #
+# Reported are:
+# - The number of reads not mapped in a propper pair (both abslute and as
+#   percentage of the total number of reads).
+# - The number of reads single-mapped forward (both absolute and as percentage
+#   of the total number of reads not mapped in a propper pair).
+# - The number of reads single-mapped reverse (both absolute and as percentage
+#   of the total number of reads not mapped in a propper pair).
+#
 # Requires the pysam Python module [1].
 #
 # [1] http://code.google.com/p/pysam/
@@ -64,8 +72,9 @@ def main(files):
         forward += counts[1]
         reverse += counts[2]
 
-    print_counts('Totals for %d files' % len(files),
-                 (total, forward, reverse))
+    if len(files) > 1:
+        print_counts('In total over %d files' % len(files),
+                     (total, forward, reverse))
 
 
 if __name__ == '__main__':
@@ -74,6 +83,14 @@ if __name__ == '__main__':
 versus forward mapped reads.
 
 Usage:
-  {command} reads1.bam [reads2.bam] [reads3.bam] ...""".format(command=sys.argv[0])
+  {command} reads1.bam [reads2.bam] [reads3.bam] ...
+
+Reported are:
+- The number of reads not mapped in a propper pair (both abslute and as
+  percentage of the total number of reads).
+- The number of reads single-mapped forward (both absolute and as percentage
+  of the total number of reads not mapped in a propper pair).
+- The number of reads single-mapped reverse (both absolute and as percentage
+  of the total number of reads not mapped in a propper pair).""".format(command=sys.argv[0])
         sys.exit(1)
     main(sys.argv[1:])
