@@ -10,17 +10,16 @@
 #   ./seattle_seq_annotation.py snp|indel <input.vcf> <mail@domain.com>
 #
 # The result is written to disk as <input.vcf.annotation>. Temporary data is
-# written to <input.vcf.annotation.tmp> and removed afterwards.
+# written to <input.vcf.part.*> files and removed afterwards.
 #
 # Requires the poster Python library [2].
 #
-# Todo: Split VCF file if it contains more than the maximum number of variants
-# accepted by SeattleSeq and submit the parts separately.
+# Todo: Testing.
 #
 # [1] http://snp.gs.washington.edu/SeattleSeqAnnotation131/
 # [2] http://atlee.ca/software/poster/
 #
-# 2011-02-10, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+# 2011-06-10, Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 # Seconds to wait between polling for job result
@@ -52,7 +51,7 @@ COLUMNS = ['sampleAlleles',
            'clinicalAssociation']
 
 # Maximum number of variants SeattleSeq accepts
-MAX_VARIANTS = 2000000
+MAX_VARIANTS = 1900000   # To be sure, actually 2000000
 
 # SeattleSeq Annotation location
 BASE_URL = 'http://snp.gs.washington.edu/SeattleSeqAnnotation131/'
@@ -62,6 +61,8 @@ POST_URL = BASE_URL + 'BatchQueryServlet'
 import sys
 import os
 import time
+from collections import defaultdict
+import uuid
 from poster.encode import multipart_encode
 from poster.streaminghttp import register_openers
 import urllib
@@ -74,12 +75,26 @@ def seattle_seq_annotation(mode, vcf_file, address):
     annotation result is retrieved as plain-text tab-separated and written
     to disk.
     """
-    monitor_url, result_url = submit_vcf_file(mode, vcf_file, address)
-    wait_for_result(monitor_url)
-    write_result_file(result_url, vcf_file + '.annotation')
+    part_files = create_parts(vcf_file)
+
+    submissions = [submit_part(mode, p, address) for p in part_files]
+
+    waiting = 0
+    first = True
+    summary = defaultdict(int)
+
+    # Todo: perhaps first truncate the annotation file
+
+    for monitor_url, result_url in submissions:
+        waiting += wait_for_result(monitor_url, waiting)
+        append_result(result_url, vcf_file + '.annotation', summary,
+                      discard_header=not first)
+        first = False
+
+    append_summary(vcf_file + '.annotation', summary)
 
 
-def submit_vcf_file(mode, vcf_file, address):
+def submit_part(mode, part_file, address):
     """
     Submit a VCF file to the SeattleSeq Annotation server and return as a
     tuple the url to monitor the job and the url to get the result.
@@ -88,17 +103,14 @@ def submit_vcf_file(mode, vcf_file, address):
     """
     format = 'VCFIndel' if mode == 'indel' else 'VCF'
 
-    auto_file = vcf_file + '.annotation.tmp'
-    create_auto_file(vcf_file, auto_file)
-
     try:
-        auto = open(auto_file, 'r')
+        part = open(part_file, 'r')
     except IOError as (_, message):
         fatal_error(message)
 
     parameters = [('genotypeSource',   'FileInput'),
                   ('EMail',            address),
-                  ('GenotypeFile',     auto),
+                  ('GenotypeFile',     part),
                   ('fileFormat',       format),
                   ('outputFileFormat', 'original'),
                   ('geneData',         'NCBI'),
@@ -107,15 +119,15 @@ def submit_vcf_file(mode, vcf_file, address):
     for column in COLUMNS:
         parameters.append( ('columns', column) )
 
-    debug('Submitting for %s annotation: %s' % (mode, vcf_file))
+    debug('Submitting for %s annotation: %s' % (mode, part_file))
 
     # Response contains result url and monitor url separated by a comma
     response = post_multipart(POST_URL, parameters)
     urls = response.readline().strip().split(',')
     response.close()
 
-    auto.close()
-    os.unlink(auto_file)
+    part.close()
+    #os.unlink(part_file)
 
     if not len(urls) == 2:
         fatal_error('Could not read urls from submit response.')
@@ -128,53 +140,80 @@ def submit_vcf_file(mode, vcf_file, address):
     return monitor_url, result_url
 
 
-def create_auto_file(vcf_file, auto_file):
+def create_parts(vcf_file):
     """
-    Copy the VCF file to another file, prepending it with a line needed by
-    the SeattleSeq Annotation server.
+    Split the VCF file in parts that contain less variants than the maximum
+    number allowed by SeattleSeq.
+
+    Make sure to include the header lines in each part and prepend a line
+    needed by the SeattleSeq Annotation server.
+
+    Return the filenames of the generated parts.
     """
     try:
         vcf = open(vcf_file, 'r')
     except IOError as (_, message):
         fatal_error(message)
 
-    try:
-        auto = open(auto_file, 'w')
-    except IOError as (_, message):
-        fatal_error(message)
-
     # Header line for automated processing
-    auto.write('# autoFile testAuto.txt\n')
+    header = '# autoFile vcfAuto.txt\n'
 
-    line_count = 0
+    # Filenames for parts
+    part_files = []
+
+    # Open a new part file
+    def open_part():
+        # Nicer would be to use something like mktemp()
+        part_file = vcf_file + '.part.' + uuid.uuid1().hex
+        try:
+            part = open(part_file, 'w')
+        except IOError as (_, message):
+            fatal_error(message)
+        part_files.append(part_file)
+        part.write(header)
+        return part
+
+    part = None
+
+    # Start with MAX_VARIANTS so we first open a new part file
+    line_count = MAX_VARIANTS
 
     # Buffered read/write
     while True:
         line = vcf.readline()
         if not line:
             break
-        auto.write(line)
+
+        # Read the original header lines
+        if line.startswith('#'):
+            header += line
+            continue
+
         line_count += 1
         if line_count > MAX_VARIANTS:
-            fatal_error('VCF file contains more variants than accepted by '
-                        'SeattleSeq (%d).' % MAX_VARIANTS)
+            if part:
+                part.close()
+            part = open_part()
+            line_count = 0
 
-    # Todo: Ignore header lines (but this will be fixed when we implement
-    # splitting of large files anyway).
+        part.write(line)
+
+    # Call for help in case of an empty VCF file (SeattleSeq does not handle
+    # this gracefully)
     if line_count == 0:
         fatal_error('VCF file contains no variants.')
 
-    debug('Copied VCF file to temporary file.')
+    debug('Splitted VCF file to temporary files.')
 
     vcf.close()
-    auto.close()
+    return part_files
 
 
-def wait_for_result(monitor_url):
+def wait_for_result(monitor_url, waiting):
     """
-    Monitor the job for progress. Return when the job is completed.
+    Monitor the job for progress. Return the number of seconds it took when
+    the job is completed.
     """
-    waiting = 0
     while True:
         if waiting > WAIT_MAX:
             fatal_error('Job took too long.')
@@ -202,38 +241,113 @@ def wait_for_result(monitor_url):
 
         # If no variants have yet been processed, we always get 0,0
         if total == '0':
-            debug('Waiting: 0%')
+            debug('Waiting for part: 0%')
             continue
 
-        debug('Waiting: %s / %s' % (processed, total))
+        debug('Waiting for part: %s / %s' % (processed, total))
 
         # See if we are done
         if processed == total:
             break
 
+    return waiting
 
-def write_result_file(result_url, output_file):
+
+def append_result(result_url, output_file, summary, discard_header=False):
     """
     Get plain-text result from server and write it to a file.
     """
     try:
-        output = open(output_file, 'wb')
+        output = open(output_file, 'ab')
     except IOError as (_, message):
         fatal_error(message)
 
     response = get(result_url)
+
+    in_header = True
 
     # Buffered read/write
     while True:
         line = response.readline()
         if not line:
             break
-        output.write(line)
+
+        if line.startswith('#'):
+            # Comment lines
+            if in_header and not discard_header:
+                output.write(line)
+            if not in_header:
+                add_to_summary(summary, line)
+        else:
+            in_header = False
+            output.write(line)
 
     debug('Result written to: %s' % output_file)
 
     response.close()
     output.close()
+
+
+def append_summary(annotation_file, summary):
+    """
+    Add summary lines to annotation file.
+    """
+    try:
+        annotation = open(annotation_file, 'ab')
+    except IOError as (_, message):
+        fatal_error(message)
+
+    annotation.write("""
+# The following summary is possibly calculated from different result parts
+# by the seattle_seq_annotation.py script.
+#
+""")
+
+    for description, count in summary:
+        annotation.write('# %s = %d\n' % (description, count))
+
+    annotation.close()
+
+
+def add_to_summary(summary, line):
+    """
+    Parse the line and add the results to the summary dictionary.
+
+    Example summary lines:
+
+      # geneDataSource NCBI_hg19 SeattleSeqAnnotation131Version_6.14
+      # HapMapFreqType HapMapFreqMinor
+      #
+      # Count Missense SNPs = 1
+      # Count Nonsense SNPs = 0
+      # Count SNPs in Splice Sites = 0
+      # Count SNPs in Coding Synonymous = 0
+      # Count SNPs in Coding (not mod 3) = 0
+      # Count SNPs in a UTR = 0
+      # Count SNPs near a gene = 8
+      # Count SNPs in Introns = 0
+      # Count Intergenic SNPs = 19
+      #
+      # number SNPs in MicroRNAs = 0
+      #
+      # number accessions coding-synonymous NCBI = 0
+      # number accessions missense NCBI = 1
+      # number accessions nonsense NCBI = 0
+      # number accessions splice-site NCBI = 0
+      # number SNPs in dbSNP = 4
+      # number SNPs not in dbSNP = 24
+      # number SNPs total = 28
+
+    The lines are description=count pairs where description is the key whose
+    value in the summary dictionary is incremented by count. Lines without a
+    =count suffix are treated as a count of 1.
+    """
+    parts = line[1:].split('=')
+    if len(parts) == 1:
+        description, count = parts[0].strip(), 1
+    else:
+        description, count = '='.join(parts[0:-1]).strip(), int(parts[-1])
+    summary[description] += count
 
 
 def get(url):
@@ -277,7 +391,7 @@ Usage:
   {command} snp|indel <input.vcf> <mail@domain.com>
 
 The result is written to disk as <input.vcf.annotation>. Temporary data is
-written to <input.vcf.annotation.tmp> and removed afterwards.
+written to <input.vcf.part.*> files and removed afterwards.
 
 [1] {url}""".format(command=sys.argv[0], url=BASE_URL)
         sys.exit(1)
