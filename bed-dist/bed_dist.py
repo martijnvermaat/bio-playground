@@ -41,7 +41,7 @@ def region_counts(bed_file):
         except (IndexError, ValueError):
             print 'Invalid line in BED file: "%s"' % line
             sys.exit(1)
-        counts[chromosome][end - start + 1] += 1
+        counts[chromosome][end - start] += 1
 
     return counts
 
