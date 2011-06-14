@@ -14,12 +14,10 @@
 #
 # Requires the poster Python library [2].
 #
-# Todo: Testing.
-#
 # [1] http://snp.gs.washington.edu/SeattleSeqAnnotation131/
 # [2] http://atlee.ca/software/poster/
 #
-# 2011-06-10, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+# 2011-06-14, Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 # Seconds to wait between polling for job result
@@ -81,17 +79,18 @@ def seattle_seq_annotation(mode, vcf_file, address):
 
     waiting = 0
     first = True
+    versions = set()
     summary = defaultdict(int)
 
     # Todo: perhaps first truncate the annotation file
 
     for monitor_url, result_url in submissions:
         waiting += wait_for_result(monitor_url, waiting)
-        append_result(result_url, vcf_file + '.annotation', summary,
-                      discard_header=not first)
+        append_result(result_url, vcf_file + '.annotation', versions,
+                      summary, discard_header=not first)
         first = False
 
-    append_summary(vcf_file + '.annotation', summary)
+    append_summary(vcf_file + '.annotation', versions, summary)
 
 
 def submit_part(mode, part_file, address):
@@ -127,7 +126,7 @@ def submit_part(mode, part_file, address):
     response.close()
 
     part.close()
-    #os.unlink(part_file)
+    os.unlink(part_file)
 
     if not len(urls) == 2:
         fatal_error('Could not read urls from submit response.')
@@ -253,7 +252,8 @@ def wait_for_result(monitor_url, waiting):
     return waiting
 
 
-def append_result(result_url, output_file, summary, discard_header=False):
+def append_result(result_url, output_file, versions, summary,
+                  discard_header=False):
     """
     Get plain-text result from server and write it to a file.
     """
@@ -277,7 +277,7 @@ def append_result(result_url, output_file, summary, discard_header=False):
             if in_header and not discard_header:
                 output.write(line)
             if not in_header:
-                add_to_summary(summary, line)
+                add_to_summary(versions, summary, line)
         else:
             in_header = False
             output.write(line)
@@ -288,7 +288,7 @@ def append_result(result_url, output_file, summary, discard_header=False):
     output.close()
 
 
-def append_summary(annotation_file, summary):
+def append_summary(annotation_file, versions, summary):
     """
     Add summary lines to annotation file.
     """
@@ -301,17 +301,23 @@ def append_summary(annotation_file, summary):
 # The following summary is possibly calculated from different result parts
 # by the seattle_seq_annotation.py script.
 #
-""")
+""".lstrip())
 
-    for description, count in summary:
+    for description in versions:
+        annotation.write('# %s\n' % description)
+
+    annotation.write('#\n')
+
+    for description, count in summary.items():
         annotation.write('# %s = %d\n' % (description, count))
 
     annotation.close()
 
 
-def add_to_summary(summary, line):
+def add_to_summary(versions, summary, line):
     """
-    Parse the line and add the results to the summary dictionary.
+    Parse the line and add the results to the summary dictionary or versions
+    set.
 
     Example summary lines:
 
@@ -340,14 +346,16 @@ def add_to_summary(summary, line):
 
     The lines are description=count pairs where description is the key whose
     value in the summary dictionary is incremented by count. Lines without a
-    =count suffix are treated as a count of 1.
+    =count suffix are added to the version set.
     """
     parts = line[1:].split('=')
     if len(parts) == 1:
-        description, count = parts[0].strip(), 1
+        description = parts[0].strip()
+        if description:
+            versions.add(description)
     else:
         description, count = '='.join(parts[0:-1]).strip(), int(parts[-1])
-    summary[description] += count
+        summary[description] += count
 
 
 def get(url):
