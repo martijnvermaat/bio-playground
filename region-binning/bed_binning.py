@@ -19,34 +19,7 @@
 
 
 import sys
-
-
-def assign_bin(start, end):
-    """
-    Algorithm by Jim Kent [1].
-
-    Todo: Parameterize by number of levels and steps between levels.
-
-    [1] http://genomewiki.ucsc.edu/index.php/Bin_indexing_system
-    """
-    bin_offsets = [512 + 64 + 8 + 1, 64 + 8 + 1, 8 + 1, 1, 0]
-    shift_first = 17
-    shift_next = 3
-
-    start_bin = start
-    end_bin = end - 1
-
-    start_bin >>= shift_first
-    end_bin >>= shift_first
-
-    for offset in bin_offsets:
-        if start_bin == end_bin:
-            return offset + start_bin
-        start_bin >>= shift_next
-        end_bin >>= shift_next
-
-    print 'Region %d-%d is out of range (maximum is 512M)' % (start, end)
-    sys.exit(1)
+from region_binning import OutOfRangeError, assign_bin
 
 
 def main(bed_file):
@@ -76,8 +49,11 @@ def main(bed_file):
             print 'Invalid line in BED file: "%s"' % line
             sys.exit(1)
 
-        # Todo: What to do with different chromosomes?
-        print assign_bin(start + 1, end)
+        try:
+            # Todo: What to do with different chromosomes?
+            print assign_bin(start + 1, end)
+        except OutOfRangeError as e:
+            print >> sys.stderr, e
 
 
 if __name__ == '__main__':

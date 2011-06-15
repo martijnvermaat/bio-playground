@@ -4,13 +4,12 @@ Working with the UCSC Genome Browser binning scheme.
 These are some utility functions for working with genomic regions and the
 binning scheme as used in the UCSC Genome Browser [1].
 
-Note that all genomic positions in this modules are zero-based and
-open-ended (like in the BED format [2]).
+Note that all genomic positions in this module are one-based and inclusive.
 
-@todo: Implement the extended binning scheme (for positions > 2^29).
+@todo: Implement the extended binning scheme (for positions > 2^29+1).
+@todo: Other utility functions (e.g. bin -> genomic range).
 
 [1] http://genome.cshlp.org/content/12/6/996.full
-[2] http://genome.ucsc.edu/FAQ/FAQformat.html#format1
 
 2011-06-15, Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
@@ -20,7 +19,7 @@ from itertools import dropwhile
 
 
 # Standard scheme used by the Genome Browser.
-MAX_POSITION = pow(2, 29)
+MAX_POSITION = pow(2, 29) + 1
 BIN_OFFSETS = [512 + 64 + 8 + 1, 64 + 8 + 1, 8 + 1, 1, 0]
 SHIFT_FIRST = 17
 SHIFT_NEXT = 3
@@ -47,10 +46,10 @@ class OutOfRangeError(Exception):
     def __str__(self):
         if self.end:
             return 'Genomic region %d-%d is out of range (maximum position' \
-                   ' is 536,870,912)' % (self.start, self.end)
+                   ' is %d)' % (self.start, self.end, MAX_POSITION)
         else:
             return 'Genomic position %d is out of range (maximum position' \
-                   ' is 536,870,912)' % self.start
+                   ' is %d)' % (self.start, MAX_POSITION)
 
 
 def range_per_level(start, end):
@@ -62,9 +61,11 @@ def range_per_level(start, end):
     If {start} > {end}, these values are automagically swapped for your
     convenience.
 
-    @arg start: Start position of genomic region (zero-based, open-ended).
+    Algorithm by Jim Kent [1].
+
+    @arg start: Start position of genomic region (one-based, inclusive).
     @type start: int
-    @arg end: End position of genomic region (zero-based, open-ended).
+    @arg end: End position of genomic region (one-based, inclusive).
     @type end: int
 
     @return: Iterator yielding tuples of
@@ -76,14 +77,16 @@ def range_per_level(start, end):
 
     @raise OutOfRangeError: Region {start}-{end} exceeds the range of the
         binning scheme.
+
+    [1] http://genomewiki.ucsc.edu/index.php/Bin_indexing_system
     """
     if start > end:
         start, end = end, start
 
-    if start < 0 or end > MAX_POSITION:
+    if start < 1 or end > MAX_POSITION:
         raise OutOfRangeError(start, end)
 
-    start_bin = start
+    start_bin = start - 1
     end_bin = end - 1
 
     start_bin >>= SHIFT_FIRST
@@ -100,9 +103,9 @@ def assign_bin(start, end):
     Given a genomic region {start}-{end}, return the smallest bin in which
     it fits.
 
-    @arg start: Start position of genomic region (zero-based, open-ended).
+    @arg start: Start position of genomic region (one-based, inclusive).
     @type start: int
-    @arg end: End position of genomic region (zero-based, open-ended).
+    @arg end: End position of genomic region (one-based, inclusive).
     @type end: int
 
     @return: Smallest bin containing {start}-{end}.
@@ -115,8 +118,7 @@ def assign_bin(start, end):
         return dropwhile(lambda (x, y): x != y,
                          range_per_level(start, end)).next()[0]
     except StopIteration:
-        # Todo
-        raise Exception()
+        raise Exception('An unexpected error occured in assigning a bin.')
 
 
 def all_bins(start, end):
@@ -126,9 +128,9 @@ def all_bins(start, end):
     smalles bins), and within a level according to the bin number
     (ascending).
 
-    @arg start: Start position of genomic region (zero-based, open-ended).
+    @arg start: Start position of genomic region (one-based, inclusive).
     @type start: int
-    @arg end: End position of genomic region (zero-based, open-ended).
+    @arg end: End position of genomic region (one-based, inclusive).
     @type end: int
 
     @return: All bins overlapping with {start}-{end}, ordered first according
