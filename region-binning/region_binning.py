@@ -6,19 +6,20 @@ binning scheme as used in the UCSC Genome Browser [1].
 
 Note that all genomic positions in this module are one-based and inclusive.
 
-@todo: Implement the extended binning scheme (for positions > 2^29+1).
-@todo: Other utility functions (e.g. bin -> genomic range).
+@todo: Implement the extended binning scheme (for positions > 2^29).
+@todo: Be more flexible in the binning scheme to use.
+@todo: Other useful functions?
 
 [1] http://genome.cshlp.org/content/12/6/996.full
 
-2011-06-15, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+2011-06-16, Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
 
 
 from itertools import dropwhile
 
 
-# Standard scheme used by the Genome Browser.
+# Standard scheme used by the UCSC Genome Browser.
 BIN_OFFSETS = [512 + 64 + 8 + 1, 64 + 8 + 1, 8 + 1, 1, 0]
 SHIFT_FIRST = 17
 SHIFT_NEXT = 3
