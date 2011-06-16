@@ -53,7 +53,8 @@ def main(bed_file):
             # Todo: What to do with different chromosomes?
             print assign_bin(start + 1, end)
         except OutOfRangeError as e:
-            print >> sys.stderr, e
+            print >> sys.stderr, \
+                  'Genomic region out of range: %d-%d' % (start, end)
 
 
 if __name__ == '__main__':

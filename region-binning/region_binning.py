@@ -19,37 +19,19 @@ from itertools import dropwhile
 
 
 # Standard scheme used by the Genome Browser.
-MAX_POSITION = pow(2, 29) + 1
 BIN_OFFSETS = [512 + 64 + 8 + 1, 64 + 8 + 1, 8 + 1, 1, 0]
 SHIFT_FIRST = 17
 SHIFT_NEXT = 3
+MAX_POSITION = pow(2, 29)
+MAX_BIN = BIN_OFFSETS[0] + (MAX_POSITION - 1 >> SHIFT_FIRST)
 
 
 class OutOfRangeError(Exception):
     """
-    Exception that is to be raised on bin calculations with a genomic region
-    or position exceeding the range of the binning scheme.
+    Exception that is raised on seeing an invalid bin number or a genomic
+    position or region exceeding the range of the binning scheme.
     """
-    def __init__(self, start, end=None):
-        if start == end:
-            end = None
-        self.start = start
-        self.end = end
-
-    def __repr__(self):
-        if self.end:
-            return 'OutOfRangeError(start=%d, end=%d)' % (self.start,
-                                                          self.end)
-        else:
-            return 'OutOfRangeError(%d)' % self.start
-
-    def __str__(self):
-        if self.end:
-            return 'Genomic region %d-%d is out of range (maximum position' \
-                   ' is %d)' % (self.start, self.end, MAX_POSITION)
-        else:
-            return 'Genomic position %d is out of range (maximum position' \
-                   ' is %d)' % (self.start, MAX_POSITION)
+    pass
 
 
 def range_per_level(start, end):
@@ -84,7 +66,9 @@ def range_per_level(start, end):
         start, end = end, start
 
     if start < 1 or end > MAX_POSITION:
-        raise OutOfRangeError(start, end)
+        raise OutOfRangeError(
+            'Genomic region %d-%d is out of range (maximum position is %d)' \
+            % (start, end, MAX_POSITION))
 
     start_bin = start - 1
     end_bin = end - 1
@@ -121,16 +105,18 @@ def assign_bin(start, end):
         raise Exception('An unexpected error occured in assigning a bin.')
 
 
-def all_bins(start, end):
+def all_bins(start, end=None):
     """
     Given a genomic region {start}-{end}, return all bins overlapping with
     the region. The order is according to the bin level (starting with the
-    smalles bins), and within a level according to the bin number
+    smallest bins), and within a level according to the bin number
     (ascending).
 
     @arg start: Start position of genomic region (one-based, inclusive).
     @type start: int
-    @arg end: End position of genomic region (one-based, inclusive).
+    @kwarg end: End position of genomic region (one-based, inclusive). If not
+        provided, the region is assumed to be of length 1 (equivalent to
+        setting {start}={end}).
     @type end: int
 
     @return: All bins overlapping with {start}-{end}, ordered first according
@@ -140,6 +126,37 @@ def all_bins(start, end):
     @raise OutOfRangeError: Region {start}-{end} exceeds the range of the
         binning scheme.
     """
+    if not end:
+        end = start
+
     return [bin
             for first, last in range_per_level(start, end)
             for bin in range(first, last + 1)]
+
+
+def covered_region(bin):
+    """
+    Given a bin number {bin}, return the genomic region covered by this bin.
+
+    @arg bin: Bin number.
+    @type bin: int
+
+    @return: Tuple of
+        - left: Start position of genomic region covered by {bin} (one-based,
+              inclusive).
+        - right: End position of genomic region covered by {bin} (one-based,
+              inclusive).
+    @rtype: tuple(int)
+
+    @raise OutOfRangeError: Bin number {bin} exceeds the maximum bin number.
+    """
+    if bin < 0 or bin > MAX_BIN:
+        raise OutOfRangeError(
+            'Invalid bin number %d (maximum bin number is %d)' \
+            % (bin, MAX_BIN))
+
+    shift = SHIFT_FIRST
+    for offset in BIN_OFFSETS:
+        if offset <= bin:
+            return (bin - offset << shift) + 1, bin + 1 - offset << shift
+        shift += SHIFT_NEXT
