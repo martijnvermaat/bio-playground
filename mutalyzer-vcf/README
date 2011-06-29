@@ -1,0 +1,17 @@
+This directory contains some scripts to create benchmarking data for the
+Mutalyzer [1] batch position converter and name checker from VCF files.
+
+First take a VCF file (preferably from an exome sequencing experiment) and
+generate variant descriptions in HGVS notation using hg19 chromosomal
+positioning. Feed the result to the Mutalyzer batch position converter. Now
+filter the result to keep all variants in coding sequences of genes. Feed the
+result to the Mutalyzer batch name checker.
+
+Example workflow:
+
+    ./vcf_to_hgvs.py sample.vcf > sample.hgvs
+    # Feed sample.hgvs to position converter, get sample.converted
+    ./filter_cds.py sample.converted > sample.cds.hgvs
+    # Feed sample.cds.hgvs to the name checker
+
+[1] http://www.mutalyzer.nl
