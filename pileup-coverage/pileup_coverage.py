@@ -66,7 +66,7 @@ if PLOT:
 
    print 'Showing coverage per position:'
    for position, coverage in position_hash.items():
-       print '%s  %s' % (('%d-%dx' % (position * 100, (position + 1) * 100)).rjust(12), '=' * (int(coverage / 750)))
+       print '%s  %s' % (('%d-%d' % (position * 100, (position + 1) * 100)).rjust(12), '=' * (int(coverage / 750)))
 
    print
 
