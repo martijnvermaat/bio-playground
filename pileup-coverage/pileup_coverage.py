@@ -63,8 +63,8 @@ plot_data = []
 for coverage in grouped_coverage.values():
     plot_data.append(str(coverage // PLOT_GRANULARITY))
 
-print 'Plot: http://chart.googleapis.com/chart?cht=lc&chs=600x200&chd=t:%s&chds=a&chxt=x,y&chxr=0,0,%d' % (','.join(plot_data), MT_SIZE)
 print 'Positions: %d (%.1f%% of mtDNA)' % (covered, covered / MT_SIZE * 100)
 print 'Mean coverage: %.1fx' % (total_coverage / covered)
 print 'Coverage range: %.1fx - %.1fx' % (minimum_coverage, maximum_coverage)
 print 'Coverage below %dx: %.1f%% of mtDNA' % (LOW_COVERAGE, low_coverage_count / MT_SIZE * 100)
+print 'http://chart.googleapis.com/chart?cht=lc&chs=600x200&chd=t:%s&chds=a&chxt=x,y&chxr=0,0,%d' % (','.join(plot_data), MT_SIZE)
