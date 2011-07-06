@@ -1,70 +1,118 @@
 #!/usr/bin/env python
 
-# Calculate mean coverage and coverage range from a pileup file and as a
-# bonus also give a plot.
-#
-# Usage:
-#   ./pileup_coverage.py file.pileup
-#
-# Warning: Calculations are ad-hoc and plots are not even that. Used on
-# mtDNA, so not optimized for full genome alignments.
-#
-# 2011-05-09, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+"""
+Calculate mean coverage, coverage range, and average coverage per N positions
+from a pileup file and write the result JSON formatted to standard output.
+
+The optional position arguments define the region on which to do the
+calculations. If not set, the region is taken to start at the first position
+in the pileup file and end at the last position in the pileup file.
+
+All positions are 1-based.
+
+Usage:
+  ./pileup_coverage.py file.pileup [first_position last_position]
+
+Warning: Calculations are ad-hoc and plots are not even that. Used on mtDNA,
+so not optimized for full genome alignments. Does not pay attention to
+chromosomes.
+
+2011-07-06, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+"""
 
 
 from __future__ import division
 
 import sys
+import json
 from collections import defaultdict
 
 
-MT_SIZE = 16596
-LOW_COVERAGE = 200
-PLOT_GRANULARITY = 70
+GROUP_SIZE = 70
 
 
-if len(sys.argv) < 2:
-    print 'No arguments given'
-    sys.exit(1)
+def calculate_coverage(pileup_file, first_position=None, last_position=None):
+    """
+    Calculate coverage statistics from pileup file. Optional arguments define
+    the region on which to calculate the coverage.
+    """
+    total_coverage = 0
+    minimum_coverage = 10000
+    maximum_coverage = 0
+    grouped_coverage = defaultdict(int)
 
-
-covered = 0
-total_coverage = 0
-minimum_coverage = 10000
-maximum_coverage = 0
-grouped_coverage = defaultdict(int)
-low_coverage_count = 0
-
-pileup_file = open(sys.argv[1], 'r')
-
-while True:
-    line = pileup_file.readline()
-    if not line:
-        break
     try:
-        position = int(line.split()[1])
-        coverage = int(line.split()[3])
-    except IndexError:
-        print 'No coverage in line: %s' % line
-        continue
-    except ValueError:
-        print 'Cannot read coverage: %s' % line.split()[3]
-        continue
-    if coverage > 0:
-        covered += 1
-    total_coverage += coverage
-    minimum_coverage = min(coverage, minimum_coverage)
-    maximum_coverage = max(coverage, maximum_coverage)
-    grouped_coverage[position // PLOT_GRANULARITY] += coverage
-    if coverage < LOW_COVERAGE:
-        low_coverage_count += 1
+        pileup = open(pileup_file, 'r')
+    except IOError as (_, message):
+        print 'Could not read pileup file: %s' % pileup_file
+        sys.exit(1)
 
-plot_data = []
-for coverage in grouped_coverage.values():
-    plot_data.append(str(coverage // PLOT_GRANULARITY))
+    while True:
+        line = pileup.readline()
+        if not line:
+            break
+        try:
+            position = int(line.split()[1])
+            coverage = int(line.split()[3])
+        except IndexError:
+            print 'No coverage in line: %s' % line
+            sys.exit(1)
+        except ValueError:
+            print 'Cannot read coverage: %s' % line.split()[3]
+            sys.exit(1)
+        if not first_position:
+            first_position = position
+        total_coverage += coverage
+        minimum_coverage = min(coverage, minimum_coverage)
+        maximum_coverage = max(coverage, maximum_coverage)
+        grouped_coverage[(position - first_position) // GROUP_SIZE] += coverage
 
-print 'Positions: %d (%.1f%% of mtDNA)' % (covered, covered / MT_SIZE * 100)
-print 'Mean coverage: %.1fx' % (total_coverage / covered)
-print 'Coverage range: %.1fx - %.1fx' % (minimum_coverage, maximum_coverage)
-print 'Coverage below %dx: %.1f%% of mtDNA' % (LOW_COVERAGE, low_coverage_count / MT_SIZE * 100)
-print 'http://chart.googleapis.com/chart?cht=lc&chs=600x200&chd=t:%s&chds=a&chxt=x,y&chxr=0,0,%d' % (','.join(plot_data), MT_SIZE)
+    if not last_position:
+        last_position = position
+
+    region_size = last_position - first_position + 1
+
+    average_grouped_coverage = []
+    for group in range(0, (region_size - 1) // GROUP_SIZE + 1):
+        group_size = GROUP_SIZE
+        if group == (region_size -1) // GROUP_SIZE:
+            group_size = region_size % GROUP_SIZE
+        average_grouped_coverage.append(grouped_coverage[group] // group_size)
+
+    google_chart_url = 'http://chart.googleapis.com/chart?cht=lc&chf=bg,s,F5F5F5&chs=600x' + \
+                       '200&chd=t:%s&chds=a&chxt=x,y&chxr=0,%d,%d' \
+                       % (','.join(map(str, average_grouped_coverage)),
+                          first_position, last_position)
+
+    print json.dumps({'mean_coverage': total_coverage / region_size,
+                      'minimum_coverage': minimum_coverage,
+                      'maximum_coverage': maximum_coverage,
+                      'chart_url': google_chart_url,
+                      'grouped_coverage': average_grouped_coverage,
+                      'group_size': GROUP_SIZE})
+
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print """Calculate mean coverage, coverage range, and average coverage per N positions
+from a pileup file and write the result JSON formatted to standard output.
+
+The optional position arguments define the region on which to do the
+calculations. If not set, the region is taken to start at the first position
+in the pileup file and end at the last position in the pileup file.
+
+All positions are 1-based.
+
+Usage:
+  {command} file.pileup [first_position last_position]""".format(command=sys.argv[0])
+        sys.exit(1)
+    if len(sys.argv) > 3:
+        try:
+            first_position = int(sys.argv[2])
+            last_position = int(sys.argv[3])
+        except ValueError:
+            print 'Optional position arguments must be integers.'
+            sys.exit(1)
+        calculate_coverage(sys.argv[1], first_position, last_position)
+    else:
+        calculate_coverage(sys.argv[1])
