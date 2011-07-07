@@ -13,6 +13,17 @@ All positions are 1-based.
 Usage:
   ./pileup_coverage.py file.pileup [first_position last_position]
 
+The result is a JSON object with fields 'region_size', 'maximum_coverage',
+'minimum_coverage', and 'mean_coverage'. If GROUPED_COVERAGE is set to True,
+also 'chart_url', 'grouped_coverage', and 'group_size' are added.
+
+All number are floored to integers. Example:
+
+  {"maximum_coverage": 540,
+   "region_size":      16569,
+   "mean_coverage":    371,
+   "minimum_coverage": 67}
+
 Warning: Calculations are ad-hoc and plots are not even that. Used on mtDNA,
 so not optimized for full genome alignments. Does not pay attention to
 chromosomes.
@@ -28,7 +39,9 @@ import json
 from collections import defaultdict
 
 
-GROUP_SIZE = 70
+# Only set this to true on small regions (up to mtDNA is fine)
+GROUPED_COVERAGE = True
+GROUP_SIZE = 100
 
 
 def calculate_coverage(pileup_file, first_position=None, last_position=None):
@@ -39,7 +52,8 @@ def calculate_coverage(pileup_file, first_position=None, last_position=None):
     total_coverage = 0
     minimum_coverage = 10000
     maximum_coverage = 0
-    grouped_coverage = defaultdict(int)
+    if GROUPED_COVERAGE:
+        grouped_coverage = defaultdict(int)
 
     try:
         pileup = open(pileup_file, 'r')
@@ -65,31 +79,40 @@ def calculate_coverage(pileup_file, first_position=None, last_position=None):
         total_coverage += coverage
         minimum_coverage = min(coverage, minimum_coverage)
         maximum_coverage = max(coverage, maximum_coverage)
-        grouped_coverage[(position - first_position) // GROUP_SIZE] += coverage
+        if GROUPED_COVERAGE:
+            grouped_coverage[(position - first_position)
+                             // GROUP_SIZE] += coverage
 
     if not last_position:
         last_position = position
 
     region_size = last_position - first_position + 1
 
-    average_grouped_coverage = []
-    for group in range(0, (region_size - 1) // GROUP_SIZE + 1):
-        group_size = GROUP_SIZE
-        if group == (region_size -1) // GROUP_SIZE:
-            group_size = region_size % GROUP_SIZE
-        average_grouped_coverage.append(grouped_coverage[group] // group_size)
+    coverage = {'region_size': region_size,
+                'mean_coverage': total_coverage // region_size,
+                'minimum_coverage': minimum_coverage,
+                'maximum_coverage': maximum_coverage}
 
-    google_chart_url = 'http://chart.googleapis.com/chart?cht=lc&chf=bg,s,F5F5F5&chs=600x' + \
-                       '200&chd=t:%s&chds=a&chxt=x,y&chxr=0,%d,%d' \
-                       % (','.join(map(str, average_grouped_coverage)),
-                          first_position, last_position)
+    if GROUPED_COVERAGE:
+        average_grouped_coverage = []
+        for group in range(0, (region_size - 1) // GROUP_SIZE + 1):
+            group_size = GROUP_SIZE
+            if group == (region_size -1) // GROUP_SIZE:
+                group_size = region_size % GROUP_SIZE
+            average_grouped_coverage.append(
+                grouped_coverage[group] // group_size)
 
-    print json.dumps({'mean_coverage': total_coverage / region_size,
-                      'minimum_coverage': minimum_coverage,
-                      'maximum_coverage': maximum_coverage,
-                      'chart_url': google_chart_url,
-                      'grouped_coverage': average_grouped_coverage,
-                      'group_size': GROUP_SIZE})
+        google_chart_url = ('http://chart.googleapis.com/chart?cht=lc&chf=' +
+                            'bg,s,F5F5F5&chs=600x200&chd=t:%s&chds=a&chxt=' +
+                            'x,y&chxr=0,%d,%d') % \
+                            (','.join(map(str, average_grouped_coverage)),
+                             first_position, last_position)
+
+        coverage.update({'chart_url': google_chart_url,
+                         'grouped_coverage': average_grouped_coverage,
+                         'group_size': GROUP_SIZE})
+
+    print json.dumps(coverage)
 
 
 if __name__ == '__main__':
