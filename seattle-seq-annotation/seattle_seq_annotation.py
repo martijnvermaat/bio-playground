@@ -49,7 +49,7 @@ COLUMNS = ['sampleAlleles',
            'clinicalAssociation']
 
 # Maximum number of variants SeattleSeq accepts
-MAX_VARIANTS = 1900000   # To be sure, actually 2000000
+MAX_VARIANTS = 900000   # To be sure, actually 1000000
 
 # SeattleSeq Annotation location
 BASE_URL = 'http://snp.gs.washington.edu/SeattleSeqAnnotation131/'
