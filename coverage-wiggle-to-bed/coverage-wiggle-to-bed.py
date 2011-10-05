@@ -15,7 +15,6 @@
 # opposed to positions in the Wiggle track [2].
 #
 # Todo: Do we need a track header line in the BED output?
-# Todo: BED files are supposed to use tab as separator.
 #
 # [1] http://genome.ucsc.edu/FAQ/FAQformat.html#format1
 # [2] http://genome.ucsc.edu/goldenPath/help/wiggle.html
@@ -47,7 +46,7 @@ def wiggle_to_bed(threshold, wiggle_file):
         Write region zero-based and open-ended.
         """
         if in_region:
-            print chromosome, region_start - 1, region_end
+            print '\t'.join([chromosome, region_start - 1, region_end])
 
     while True:
         line = wiggle.readline()
