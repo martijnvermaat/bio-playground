@@ -46,7 +46,7 @@ def wiggle_to_bed(threshold, wiggle_file):
         Write region zero-based and open-ended.
         """
         if in_region:
-            print '\t'.join([chromosome, region_start - 1, region_end])
+            print '%s\t%i\t%i' % (chromosome, region_start - 1, region_end)
 
     while True:
         line = wiggle.readline()
