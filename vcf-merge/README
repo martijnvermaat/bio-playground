@@ -1,0 +1,52 @@
+Merging VCF files
+=================
+
+Experimented with VCF files from GoNL variant calls by BGI.
+
+
+For SNPs
+--------
+
+Using vcf-merge from vcftools [1]. Note that the VCF files must be sorted by
+position. Example:
+
+    vcf-sort sample.vcf > sample.sorted.vcf
+
+Compress and index each VCF file:
+
+    bgzip -c sample.vcf > sample.vcf.gz
+    tabix -p vcf sample.vcf.gz
+
+Now merge them:
+
+    vcf-merge *.vcf.gz > merged.vcf
+
+The result is a merged VCF file with positional duplicates. Each input file
+gets an allele column. For example, the inputs (simplified)
+
+     chr1 3432 G T 0/1
+     chr1 3432 G C 1/1
+     chr1 3432 G T 1/0
+
+will yield (simplified):
+
+     chr1 3432 G T,C 0/1 2/2 1/0
+
+Note that vcf-merge will assign column names to the samples based on the input
+filenames, so having sensibly named files will help. It seems information like
+coverage is lost (the highest coverage value is copied).
+
+Tested with up to 4 input files.
+
+
+For INDELs
+----------
+
+This is probably handled less delicately by vcf-merge, but still to be
+investigated.
+
+A tool by Jeroen first normalizes ('compresses') INDEL calls in VCF files,
+this might be usefull to preprocess the VCF files before merging.
+
+
+[1] http://vcftools.sourceforge.net/
