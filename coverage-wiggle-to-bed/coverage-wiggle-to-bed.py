@@ -77,7 +77,8 @@ def wiggle_to_bed(threshold, wiggle_file):
             position = int(parts[0])
             coverage = int(parts[1])
         except (IndexError, ValueError):
-            'Error interpreting line: %s' % line
+            print 'Error interpreting line: %s' % line
+            sys.exit(1)
 
         if coverage < threshold:
             write_region()
