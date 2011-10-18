@@ -20,7 +20,6 @@ Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 from __future__ import division
 
 import os
-import sys
 from contextlib import contextmanager, closing
 
 import argparse
