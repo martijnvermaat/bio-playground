@@ -8,6 +8,7 @@ partly inspired by [2].
 Todo: Implement the window_size argument.
 Todo: Use default filenames for coverage_file and summary_file based on
       bam_file.
+Todo: Specify regions to calculate coverage for.
 
 [1] http://code.google.com/p/pysam/
 [2] https://github.com/chapmanb/bcbb/blob/master/nextgen/scripts/bam_to_wiggle.py
