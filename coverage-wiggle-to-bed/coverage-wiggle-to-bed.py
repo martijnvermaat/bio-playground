@@ -63,7 +63,7 @@ def read_thresholds(thresholds_file):
     """
     with open(thresholds_file, 'r') as thresholds:
         def parse(line):
-            f = line.split('\t')
+            f = line.split()
             return (f[0], int(f[1]), int(f[2]), float(f[4]))
         return map(parse, thresholds)
 
