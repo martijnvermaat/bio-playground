@@ -29,7 +29,7 @@ WAIT_MAX = 43200
 # Print debugging information
 DEBUG = True
 
-# Columns to include
+# Columns to include (order must be maintained)
 COLUMNS = ['sampleAlleles',
 #           'dbSNPGenotype',
            'allelesDBSNP',
@@ -45,8 +45,8 @@ COLUMNS = ['sampleAlleles',
            'proteinSequence',
 #           'cDNAPosition',
            'polyPhen',
-           'clinicalAssociation'
-#           'distanceToSplice',
+           'clinicalAssociation',
+           'distanceToSplice'
 #           'microRNAs',
 #           'grantham'
            ]
