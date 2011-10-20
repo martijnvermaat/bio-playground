@@ -43,10 +43,13 @@ COLUMNS = ['sampleAlleles',
            'dbSNPValidation',
            'repeats',
            'proteinSequence',
+#           'cDNAPosition',
            'polyPhen',
+           'clinicalAssociation'
 #           'distanceToSplice',
 #           'microRNAs',
-           'clinicalAssociation']
+#           'grantham'
+           ]
 
 # Maximum number of variants SeattleSeq accepts
 MAX_VARIANTS = 900000   # To be sure, actually 1000000
