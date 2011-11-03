@@ -1,26 +1,28 @@
 #!/usr/bin/env python
+"""
+(Re-)sync two filtered paired end FASTQ files.
 
-# (Re-)sync two filtered paired end FASTQ files.
-#
-# Given two filtered paired end read files and one of the original read files,
-# re-sync the filtered reads by filtering out anything that is only present in
-# one of the two files.
-#
-# Usage:
-#   ./sync_paired_end_reads.py <orig.fq> <reads_1.fq> <reads_2.fq> \
-#                              <reads_1.synced.fq> <reads_2.synced.fq>
-#
-# The synced reads are written to disk as <reads_1.synced.fq> and
-# <reads_2.synced.fq>. Afterwards some counts are printed.
-#
-# The original read file is used to speed up processing: it contains all
-# possible reads from both edited reads (in all files in the same order) so it
-# can process all files line by line, not having to read a single file in
-# memory. Some ideas were taken from [1].
-#
-# [1] https://gist.github.com/588841/
-#
-# 2011-02-21, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+Given two filtered paired end read files and one of the original read files,
+re-sync the filtered reads by filtering out anything that is only present in
+one of the two files.
+
+Usage:
+  {command} <orig.fq> <reads_1.fq> <reads_2.fq> \\
+      <reads_1.synced.fq> <reads_2.synced.fq>
+
+The synced reads are written to disk as <reads_1.synced.fq> and
+<reads_2.synced.fq>. Afterwards some counts are printed.
+
+
+The original read file is used to speed up processing: it contains all
+possible reads from both edited reads (in all files in the same order) so it
+can process all files line by line, not having to read a single file in
+memory. Some ideas were taken from [1].
+
+[1] https://gist.github.com/588841/
+
+2011-11-03, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+"""
 
 
 import sys
@@ -48,7 +50,6 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
     @todo: Print warnings if obvious things are not right (a or b still has
            lines after original is processed).
     """
-
     def next_record(fh):
         return [fh.readline().strip() for i in range(4)]
 
@@ -82,18 +83,8 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
 
 if __name__ == '__main__':
     if len(sys.argv) < 6:
-        print """(Re-)sync two filtered paired end FASTQ files.
-
-Given two filtered paired end read files and one of the original read files,
-re-sync the filtered reads by filtering out anything that is only present in
-one of the two files.
-
-Usage:
-  %s <orig.fq> <reads_1.fq> <reads_2.fq> \\
-      <reads_1.synced.fq> <reads_2.synced.fq>
-
-The synced reads are written to disk as <reads_1.synced.fq> and
-<reads_2.synced.fq>. Afterwards some counts are printed.""" % sys.argv[0]
+        sys.stderr.write(__doc__.split('\n\n\n')[0].strip().format(
+            command=sys.argv[0]) + '\n')
         sys.exit(1)
     try:
         original = open(sys.argv[1], 'r')
@@ -108,5 +99,5 @@ The synced reads are written to disk as <reads_1.synced.fq> and
         print 'Filtered %i reads from second read file.' % filtered_b
         print 'Synced read files contain %i reads.' % kept
     except IOError as (_, message):
-        print 'Error: %s' % message
+        sys.stderr.write('Error: %s\n' % message)
         sys.exit(1)
