@@ -14,6 +14,8 @@ The synced reads are written to disk as <reads_1.synced.fq> and
 <reads_2.synced.fq>. Afterwards some counts are printed.
 
 
+Both Illumina old-style and new-style paired-end header lines are supported.
+
 The original read file is used to speed up processing: it contains all
 possible reads from both edited reads (in all files in the same order) so it
 can process all files line by line, not having to read a single file in
@@ -26,6 +28,7 @@ memory. Some ideas were taken from [1].
 
 
 import sys
+import re
 
 
 def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
@@ -50,14 +53,18 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
     @todo: Print warnings if obvious things are not right (a or b still has
            lines after original is processed).
     """
+    # This matches 1 or 2 preceded by / _ or whitespace. Its rightmost match
+    # in a header line is used to identify the read pair.
+    sep = re.compile('[\s_/][12]')
+
     def next_record(fh):
         return [fh.readline().strip() for i in range(4)]
 
     def head(record):
-        return record[0][:-2]
+        return sep.split(record[0])[:-1]
 
-    # Strip the /2 or /1 and grab only the headers.
-    headers = (x.strip()[:-2] for i, x in enumerate(original) if not (i % 4))
+    headers = (sep.split(x.strip())[:-1] for i, x in enumerate(original)
+               if not (i % 4))
 
     filtered_a = filtered_b = kept = 0
 
