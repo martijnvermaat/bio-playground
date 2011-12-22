@@ -4,7 +4,7 @@ Write paired end reads from a BAM file to FASTQ files.
 
 Any duplicate reads (by name) are only written once and filtering out pairs of
 which only one side is present can be done by passing the --sync-pairs
-argument.
+argument. The BAM file is assumed to be sorted by read name.
 
 Quality scores are written as-is from the BAM file, thus in Sanger (Phred+33)
 ASCII representations.
