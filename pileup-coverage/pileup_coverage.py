@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """
 Calculate mean coverage, coverage range, and average coverage per N positions
 from a pileup file and write the result JSON formatted to standard output.
@@ -28,7 +27,8 @@ Warning: Calculations are ad-hoc and plots are not even that. Used on mtDNA,
 so not optimized for full genome alignments. Does not pay attention to
 chromosomes.
 
-2011-07-06, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
 
 

@@ -13,6 +13,7 @@ Todo: Specify regions to calculate coverage for.
 [1] http://code.google.com/p/pysam/
 [2] https://github.com/chapmanb/bcbb/blob/master/nextgen/scripts/bam_to_wiggle.py
 
+Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
 Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
 

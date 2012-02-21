@@ -19,6 +19,7 @@ Todo: Add support for span argument of variableStep lines.
 [1] http://genome.ucsc.edu/FAQ/FAQformat.html#format1
 [2] http://genome.ucsc.edu/goldenPath/help/wiggle.html
 
+Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
 Copyright (c) 2011 Jeroen Laros <j.f.j.laros@lumc.nl>
 Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """

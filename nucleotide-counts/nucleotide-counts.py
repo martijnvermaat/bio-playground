@@ -5,7 +5,8 @@
 # Usage:
 #   ./nucleotide-counts.py sequence.fasta
 #
-# 2011-05-25, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+# Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+# Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 from __future__ import division

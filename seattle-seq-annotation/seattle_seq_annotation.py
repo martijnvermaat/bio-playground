@@ -17,7 +17,8 @@
 # [1] http://snp.gs.washington.edu/SeattleSeqAnnotation131/
 # [2] http://atlee.ca/software/poster/
 #
-# 2011-06-14, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+# Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+# Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 # Seconds to wait between polling for job result

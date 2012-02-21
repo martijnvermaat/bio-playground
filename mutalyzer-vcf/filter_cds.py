@@ -5,7 +5,8 @@
 # Usage:
 #   ./filter_cds.py converted.result
 #
-# 2011-06-29, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+# Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+# Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 import sys

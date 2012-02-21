@@ -15,7 +15,8 @@
 # [1] http://genome.cshlp.org/content/12/6/996.full
 # [2] http://genome.ucsc.edu/FAQ/FAQformat.html#format1
 #
-# 2011-06-10, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+# Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+# Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 import sys

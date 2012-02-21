@@ -19,6 +19,7 @@ Todo: Option to process RNA instead of DNA (needs other base complements).
 
 [1] http://code.google.com/p/pysam/
 
+Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
 Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
 

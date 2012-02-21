@@ -10,6 +10,9 @@
 #
 # Todo: Plot length distribution (or do more efficient calculation for the
 #       current simple numbers).
+#
+# Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+# Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 from __future__ import division

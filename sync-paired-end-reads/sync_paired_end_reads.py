@@ -23,7 +23,8 @@ memory. Some ideas were taken from [1].
 
 [1] https://gist.github.com/588841/
 
-2011-11-03, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
 
 

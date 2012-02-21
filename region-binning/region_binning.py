@@ -12,7 +12,8 @@ Note that all genomic positions in this module are one-based and inclusive.
 
 [1] http://genome.cshlp.org/content/12/6/996.full
 
-2011-06-16, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
 
 

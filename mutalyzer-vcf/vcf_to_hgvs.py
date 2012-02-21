@@ -8,7 +8,8 @@
 # The VCF file must be in VCFv4.1 format (as created by Samtools 0.1.16
 # for example).
 #
-# 2011-06-28, Martijn Vermaat <m.vermaat.hg@lumc.nl>
+# Copyright (c) 2011 Leiden University Medical Center <humgen@lumc.nl>
+# Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 
 
 import sys
