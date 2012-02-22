@@ -23,6 +23,11 @@ want to see.
 
 Run with no arguments for usage info.
 
+Note: The argument parsing suffers from Issue9338 [1]. Specify the -s argument
+    after the positional BED_FILE or put a -- in between to work around this.
+
+[1] http://bugs.python.org/issue9338
+
 Copyright (c) 2012 Leiden University Medical Center <humgen@lumc.nl>
 Copyright (c) 2012 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
@@ -41,28 +46,15 @@ USER = 'user'
 PASSWORD = ''
 DATABASE = 'ngsdata'
 
-# Database sample IDs to query
-SAMPLES = [4, 5]
-
 FIELDS = ['chrom', 'pos', 'ref', 'alt', 'sample', 'freq']
 
 
-def main(bed):
+def main(bed, samples):
     """
     Read regions from BED file and query the database for variants.
     """
     connection = connect()
     cursor = connection.cursor(MySQLdb.cursors.DictCursor)
-
-    # Get the sample names
-    sample_names = {}
-    cursor.execute('SELECT id, comment from Sample where id IN ({samples})' \
-                   .format(samples=','.join(map(str, SAMPLES))))
-    while True:
-        sample = cursor.fetchone()
-        if sample is None:
-            break
-        sample_names[sample['id']] = sample['comment']
 
     print '#' + '\t'.join(field.upper() for field in FIELDS)
 
@@ -80,24 +72,23 @@ def main(bed):
             sys.stderr.write('Invalid line in BED file: "%s"\n' % line)
             sys.exit(1)
 
-        for variant in get_variants(cursor, chromosome, start, end):
-            variant['sample'] = sample_names[variant['sample_id']]
+        for variant in get_variants(cursor, samples, chromosome, start, end):
             print '\t'.join(str(variant[field]) for field in FIELDS)
 
 
-def get_variants(cursor, chromosome, start, end):
+def get_variants(cursor, samples, chromosome, start, end):
     # Note: For now we require variant start to be in the region.
     cursor.execute(
         """
-        SELECT chromosome, sampleId, coverage, variantSupport, begin, reference, variant
-        FROM Observation O, Variant V
-        WHERE O.variantId = V.id
+        SELECT chromosome, comment, coverage, variantSupport, begin, reference, variant
+        FROM Observation O, Variant V, Sample S
+        WHERE O.variantId = V.id AND O.sampleId = S.id
         AND O.sampleId IN ({samples})
         AND V.chromosome = %s
         AND V.begin >= %s
         AND V.begin <= %s
         ORDER BY V.begin ASC, V.end ASC, O.sampleId ASC;
-        """.format(samples=','.join(map(str, SAMPLES))), (chromosome, start, end))
+        """.format(samples=','.join(map(str, samples))), (chromosome, start, end))
     while True:
         variant = cursor.fetchone()
         if variant is None:
@@ -106,7 +97,7 @@ def get_variants(cursor, chromosome, start, end):
                'pos': variant['begin'],
                'ref': variant['reference'],
                'alt': variant['variant'],
-               'sample_id': variant['sampleId'],
+               'sample': variant['comment'],
                'freq': variant['variantSupport'] / variant['coverage']}
 
 
@@ -127,8 +118,10 @@ if __name__ == '__main__':
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description=__doc__.split('\n\n\n')[0])
     group = parser.add_argument_group()
-    group.add_argument('bed', metavar='BED_FILE',
-                       type=argparse.FileType('r'),
+    group.add_argument('-s', '--samples', metavar='SAMPLE', dest='samples',
+                       nargs='+', type=int, required=True,
+                       help='database sample IDs to query')
+    group.add_argument('bed', metavar='BED_FILE', type=argparse.FileType('r'),
                        help='file in BED format to read regions from')
     args = parser.parse_args()
-    main(args.bed)
+    main(args.bed, args.samples)
