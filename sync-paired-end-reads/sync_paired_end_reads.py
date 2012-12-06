@@ -54,9 +54,9 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
     @todo: Print warnings if obvious things are not right (a or b still has
            lines after original is processed).
     """
-    # This matches 1 or 2 preceded by / _ or whitespace. Its rightmost match
-    # in a header line is used to identify the read pair.
-    sep = re.compile('[\s_/][12]')
+    # This matches 1, 2, or 3 preceded by / _ or whitespace. Its rightmost
+    # match in a header line is used to identify the read pair.
+    sep = re.compile('[\s_/][123]')
 
     def next_record(fh):
         return [fh.readline().strip() for i in range(4)]
