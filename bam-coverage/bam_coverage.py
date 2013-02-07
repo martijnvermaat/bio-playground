@@ -73,13 +73,13 @@ def write_coverage(bam_file, coverage, regions_file=None):
                 if start <= column.pos < end:
                     summed_coverage += column.n
                     coverage.write('%s %.1f\n' % (column.pos + 1, column.n))
-            regions.append( (name, start, end, summed_coverage / (end - start)) )
+            regions.append( (name, start, end, summed_coverage) )
     return regions
 
 
 def write_summary(regions, summary):
-    for name, start, end, average in regions:
-        summary.write('%s\t%i\t%i\t-\t%i\n' % (name, start, end, average))
+    for name, start, end, coverage in regions:
+        summary.write('%s\t%i\t%i\t-\t%i\n' % (name, start, end, coverage))
 
 
 if __name__ == '__main__':
