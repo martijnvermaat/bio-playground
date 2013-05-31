@@ -56,7 +56,7 @@ COLUMNS = ['sampleAlleles',
 MAX_VARIANTS = 900000   # To be sure, actually 1000000
 
 # SeattleSeq Annotation location
-BASE_URL = 'http://snp.gs.washington.edu/SeattleSeqAnnotation131/'
+BASE_URL = 'http://snp.gs.washington.edu/SeattleSeqAnnotation137/'
 POST_URL = BASE_URL + 'BatchQueryServlet'
 
 
@@ -71,7 +71,7 @@ import urllib
 import urllib2
 
 
-def seattle_seq_annotation(mode, vcf_file, address):
+def seattle_seq_annotation(vcf_file, address):
     """
     Submit a VCF file to the SeattleSeq Annotation web interface. The
     annotation result is retrieved as plain-text tab-separated and written
@@ -79,7 +79,7 @@ def seattle_seq_annotation(mode, vcf_file, address):
     """
     part_files = create_parts(vcf_file)
 
-    submissions = [submit_part(mode, p, address) for p in part_files]
+    submissions = [submit_part(p, address) for p in part_files]
 
     waiting = 0
     first = True
@@ -97,15 +97,11 @@ def seattle_seq_annotation(mode, vcf_file, address):
     append_summary(vcf_file + '.annotation', versions, summary)
 
 
-def submit_part(mode, part_file, address):
+def submit_part(part_file, address):
     """
     Submit a VCF file to the SeattleSeq Annotation server and return as a
     tuple the url to monitor the job and the url to get the result.
-
-    The {mode} argument can be 'snp' (default) or 'indel'.
     """
-    format = 'VCFIndel' if mode == 'indel' else 'VCF'
-
     try:
         part = open(part_file, 'r')
     except IOError as (_, message):
@@ -114,15 +110,15 @@ def submit_part(mode, part_file, address):
     parameters = [('genotypeSource',   'FileInput'),
                   ('EMail',            address),
                   ('GenotypeFile',     part),
-                  ('fileFormat',       format),
-                  ('outputFileFormat', 'original'),
+                  ('fileFormat',       'VCFSNVsAndIndels'),
+                  ('outputFileFormatBoth', 'originalBoth'),
                   ('geneData',         'NCBI'),
                   ('HapMapFreqType',   'HapMapFreqMinor'),
                   ('gFetch',           'Display Genotypes')]
     for column in COLUMNS:
         parameters.append( ('columns', column) )
 
-    debug('Submitting for %s annotation: %s' % (mode, part_file))
+    debug('Submitting for annotation: %s' % part_file)
 
     # Response contains result url and monitor url separated by a comma
     response = post_multipart(POST_URL, parameters)
@@ -393,18 +389,18 @@ def fatal_error(message):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 4 or not sys.argv[1] in ['snp', 'indel']:
+    if len(sys.argv) < 3:
         print """Annotate variants using SeattleSeq Annotation.
 
 Given a VCF file with variants, submit the file to the SeattleSeq Annotation
 web interface [1]. The annotation result is retrieved as tab-separated file.
 
 Usage:
-  {command} snp|indel <input.vcf> <mail@domain.com>
+  {command} <input.vcf> <mail@domain.com>
 
 The result is written to disk as <input.vcf.annotation>. Temporary data is
 written to <input.vcf.part.*> files and removed afterwards.
 
 [1] {url}""".format(command=sys.argv[0], url=BASE_URL)
         sys.exit(1)
-    seattle_seq_annotation(sys.argv[1], sys.argv[2], sys.argv[3])
+    seattle_seq_annotation(sys.argv[1], sys.argv[2])
