@@ -13,8 +13,9 @@ Usage:
 The synced reads are written to disk as <reads_1.synced.fq> and
 <reads_2.synced.fq>. Afterwards some counts are printed.
 
+Both Illumina old-style and new-style paired-end header lines are supported
+and any (input or output) filename ending in .gz is assumed to be gzipped.
 
-Both Illumina old-style and new-style paired-end header lines are supported.
 
 The original read file is used to speed up processing: it contains all
 possible reads from both edited reads (in all files in the same order) so it
@@ -28,8 +29,9 @@ Copyright (c) 2011 Martijn Vermaat <m.vermaat.hg@lumc.nl>
 """
 
 
-import sys
+import gzip
 import re
+import sys
 
 
 def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
@@ -89,17 +91,25 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
     return filtered_a, filtered_b, kept
 
 
+def _open(filename, mode='r'):
+    if filename.endswith('.gz'):
+        if not 'b' in mode:
+            mode += 'b'
+        return gzip.open(filename, mode)
+    return open(filename, mode)
+
+
 if __name__ == '__main__':
     if len(sys.argv) < 6:
         sys.stderr.write(__doc__.split('\n\n\n')[0].strip().format(
             command=sys.argv[0]) + '\n')
         sys.exit(1)
     try:
-        original = open(sys.argv[1], 'r')
-        reads_a = open(sys.argv[2], 'r')
-        reads_b = open(sys.argv[3], 'r')
-        synced_a = open(sys.argv[4], 'w')
-        synced_b = open(sys.argv[5], 'w')
+        original = _open(sys.argv[1], 'r')
+        reads_a = _open(sys.argv[2], 'r')
+        reads_b = _open(sys.argv[3], 'r')
+        synced_a = _open(sys.argv[4], 'w')
+        synced_b = _open(sys.argv[5], 'w')
         filtered_a, filtered_b, kept = \
                     sync_paired_end_reads(original, reads_a, reads_b,
                                           synced_a, synced_b)
