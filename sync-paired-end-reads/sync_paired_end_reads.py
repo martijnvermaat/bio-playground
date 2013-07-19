@@ -93,8 +93,6 @@ def sync_paired_end_reads(original, reads_a, reads_b, synced_a, synced_b):
 
 def _open(filename, mode='r'):
     if filename.endswith('.gz'):
-        if not 'b' in mode:
-            mode += 'b'
         return gzip.open(filename, mode)
     return open(filename, mode)
 
