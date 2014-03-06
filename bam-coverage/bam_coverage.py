@@ -28,11 +28,11 @@ import pysam
 
 
 def main(bam_file, coverage_file, summary_file, regions_file=None,
-         window_size=1):
+         split=False, window_size=1):
     #if not coverage_file:
     #    coverage_file = '%s.wig' % os.path.splitext(bam_file)[0]
     with open(coverage_file, 'w') as coverage:
-        regions = write_coverage(bam_file, coverage, regions_file)
+        regions = write_coverage(bam_file, coverage, regions_file, split)
     with open(summary_file, 'w') as summary:
         write_summary(regions, summary)
 
@@ -55,7 +55,7 @@ def read_regions(regions_file):
             yield name, int(start), int(end)
 
 
-def write_coverage(bam_file, coverage, regions_file=None):
+def write_coverage(bam_file, coverage, regions_file=None, split=False):
     coverage.write('track %s\n' % ' '.join(['type=wiggle_0',
         'name=%s' % os.path.splitext(os.path.split(bam_file)[-1])[0],
         'visibility=full']))
@@ -71,8 +71,13 @@ def write_coverage(bam_file, coverage, regions_file=None):
             summed_coverage = 0
             for column in bam.pileup(name, start, end):
                 if start <= column.pos < end:
-                    summed_coverage += column.n
-                    coverage.write('%s %.1f\n' % (column.pos + 1, column.n))
+                    if split:
+                        n = sum(1 for r in column.pileups if not r.is_del)
+                    else:
+                        n = column.n
+                    if n > 0:
+                        summed_coverage += n
+                        coverage.write('%s %.1f\n' % (column.pos + 1, n))
             regions.append( (name, start, end, summed_coverage) )
     return regions
 
@@ -93,8 +98,11 @@ if __name__ == '__main__':
                        help='write coverage per region in BED format')
     parser.add_argument('-r', dest='regions_file',
                         help='regions to calculate coverage for in BED format')
+    parser.add_argument('-p', '--split', dest='split', action='store_true',
+                        help='treat split reads as distinct coverage '
+                        'intervals')
     parser.add_argument('-w', dest='window_size', default=1, type=int,
                         help='window size for COVERAGE_FILE (default: 1)')
     args = parser.parse_args()
     main(args.bam_file, args.coverage_file, args.summary_file,
-         args.regions_file, args.window_size)
+         args.regions_file, args.split, args.window_size)
